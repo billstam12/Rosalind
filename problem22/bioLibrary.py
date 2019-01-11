@@ -288,7 +288,6 @@ def noOfRNAStrings(str):
 	return prob
 
 
-
 def getStartPos(dna):
 	startIndexes = []
 	for i in range(0, len(dna), 1):

@@ -3,10 +3,14 @@
 # Collections Counter to count instances on strings
 # Numpy and math for obvious reasons
 
-from itertools import groupby
+# Written in python 2.7
+# Vasilis Stamatopoulos
+
+from itertools import groupby, product, chain
 from collections import Counter
 import numpy as np
 import math
+import Queue
 
 # Needed Dictionaries
 
@@ -137,9 +141,10 @@ class nucleicAcid:
 		self.gcContent = 0
 		self.complementString = ""
 		self.reverseString = ""
-		self.reverseComplement = ""
+		self.reverseComplementString = ""
 		self.lcss = ""
 		self.scss = ""
+		self.maximumMatchings = 0
 
 	def countGC(seq):
 		counts = Counter(seq[1])
@@ -148,6 +153,7 @@ class nucleicAcid:
 	def reverse(self):
 		dna = list(self.string)
 		self.reverseString = dna[::-1]
+		return self.reverseString
 
 	def complement(self):
 		dna = list(self.string)
@@ -161,15 +167,27 @@ class nucleicAcid:
 				self.complementString.append('G')
 			elif(dna[i]) == 'G':
 				self.complementString.append('C')
-		self.complement =''.join(self.complement)
+		self.complementString =''.join(self.complementString)
+		return self.complementString
 
 	def reverseComplement(self):
-		reverse =  self.reverse(self.dnaString)
-		self.reverseComplement = self.complement(reverse)
+		self.reverseComplementString = []
+		self.reverse()
+		for i in range(len(self.reverseString)):
+			if(self.reverseString[i]) == 'T':
+				self.reverseComplementString.append('A')
+			elif(self.reverseString[i]) == 'A':
+				self.reverseComplementString.append('T')
+			elif(self.reverseString[i]) == 'C':
+				self.reverseComplementString.append('G')
+			elif(self.reverseString[i]) == 'G':
+				self.reverseComplementString.append('C')
+		self.reverseComplementString =''.join(self.reverseComplementString)
+		return self.reverseComplementString
 
 	# Get Longest Increasing subsequence lcss
 	# Using dynamic Programming
-	def increasing(seq):
+	def increasing(self, seq):
 	    P = [None] * len(seq)
 	    M = [None] * len(seq)
 
@@ -202,9 +220,9 @@ class nucleicAcid:
 	        pos = P[pos]
 
 	    self.lcss = (result[::-1])
+	    return self.lcss
 
-
-	def decreasing(seq):
+	def decreasing(self, seq):
 	    P = [None] * len(seq)
 	    M = [None] * len(seq)
 
@@ -235,6 +253,20 @@ class nucleicAcid:
 	        pos = P[pos]
 
 	    self.scss = (result[::-1])
+	    return self.scss
+
+	def failureArray(seq):
+		fa = [0] * len(seq)
+		fa[0] = 0
+		for i in range(1,len(seq)):
+			j =  fa[i - 1]
+			while(seq[i]!=seq[j] and j > 0):
+				j = fa[j - 1]
+			if seq[i] == seq[j]:
+				j+=1
+			fa[i] = j
+			
+		return fa  
 
 class dna(nucleicAcid):
 
@@ -245,11 +277,12 @@ class dna(nucleicAcid):
 
 	def countBases(self):
 	#begin search
-	    self.a = self.count('A')
-	    self.c = self.count('C')
-	    self.g = self.count('G')
-	    self.t = self.count('T')
-		
+		self.a = self.string.count('A')
+		self.c = self.string.count('C')
+		self.g = self.string.count('G')
+		self.t = self.string.count('T')
+		return self.a, self.c, self.g, self.t
+
 	def dnaToRna(self):
 		self.string = list(self.string)
 		rna = map(lambda s: s.replace('T' , 'U'), self.string)
@@ -280,10 +313,30 @@ class dna(nucleicAcid):
 		for s in range(len(startIndexes)):
 			self.aas.append(self.dnaToAA(self.string[startIndexes[s]:]))
 	
+	def kMerComposition(self, k):
+		st = st.strip()
+		strs = "ACGT"
+		subs = product(strs, repeat = k)
+		kmers = []
+		for s in subs:
+			kmers.append("".join(x for x in s))
+		
+		mat = []
+		for km in (kmers):
+			mat.append((len(re.findall("(?=" + km + ")" ,self.string))))
+
+		return " ".join('%2d'%x for x in mat)
+
+	def maximumMatchings(self):
+		A, C, G, T = self.countBases()
+		AT = factorial(max(A, T)) / factorial(max(A, T) - min(A, T))
+		GC = factorial(max(G, C)) / factorial(max(G, C) - min(G, C))
+		self.maximumMatchings = (AT*GC)
+		return (AT)*(GC)
 
 class rna(nucleicAcid):
 
-	def __init__(self, rnaString):
+	def __init__(self, string):
 		nucleicAcid.__init__(self, string)
 		self.perfectMatches = 0
 		self.ncPerfectMatches = 0
@@ -318,6 +371,35 @@ class rna(nucleicAcid):
 			# assign current sequence into dictionary for later use
 			self.cache[seq] = sum(tmp)
 		self.cache[seq]
+
+	def kMerComposition(self, k):
+		st = st.strip()
+		strs = "ACGU"
+		subs = product(strs, repeat = k)
+		kmers = []
+		for s in subs:
+			kmers.append("".join(x for x in s))
+		
+		mat = []
+		for km in (kmers):
+			mat.append((len(re.findall("(?=" + km + ")" ,self.string))))
+		return " ".join('%2d'%x for x in mat)
+
+	def countBases(self):
+	#begin search
+		self.a = self.string.count('A')
+		self.c = self.string.count('C')
+		self.g = self.string.count('G')
+		self.u = self.string.count('U')
+		return self.a, self.c, self.g, self.u
+
+	def maximumMatchings(r):
+		A, C, G, U = r.countBases()
+		AU = factorial(max(A, U)) / factorial(max(A, U) - min(A, U))
+		GC = factorial(max(G, C)) / factorial(max(G, C) - min(G, C))
+		self.maximumMatchings = (AU)*(GC)
+		return (AU)*(GC)
+
 
 class aminoAcid:
 	
@@ -357,6 +439,38 @@ def fastaIter(fasta_name):
 
 		yield (headerStr, seq)
 
+def reverse(dna):
+	dna = list(dna)
+	return dna[::-1]
+
+def complement(dna):
+	dna = list(dna)
+	complementString = []
+	for i in range(len(dna)):
+		if(dna[i]) == 'T':
+			self.complementString.append('A')
+		elif(dna[i]) == 'A':
+			self.complementString.append('T')
+		elif(dna[i]) == 'C':
+			self.complementString.append('G')
+		elif(dna[i]) == 'G':
+			self.complementString.append('C')
+	self.complementString =''.join(self.complementString)
+
+def reverseComplement(self):
+	self.reverseComplementString = []
+	self.reverse()
+	for i in range(len(self.reverseString)):
+		if(self.reverseString[i]) == 'T':
+			self.reverseComplementString.append('A')
+		elif(self.reverseString[i]) == 'A':
+			self.reverseComplementString.append('T')
+		elif(self.reverseString[i]) == 'C':
+			self.reverseComplementString.append('G')
+		elif(self.reverseString[i]) == 'G':
+			self.reverseComplementString.append('C')
+	self.reverseComplementString =''.join(self.reverseComplementString)
+
 ## Probability Defining Functions ##
 
 def fibonacci(n,k):
@@ -393,11 +507,12 @@ def independentAlleles(k, n):
 # 2. Find the longest Common Substring of two strings
 # 3. Find one substring of two strings s, t
 # 4. Get ratio of transitions to transmutations
+# 5. Find LCS
+# 6. Find edit Distance between 2 strings
 
 def hammingDistance(s1,s2):
     assert len(s1) == len(s2) #Must be of equal lengths
     return sum(c1 != c2 for c1, c2 in zip(s1, s2))
-
 
 def longestCommonSubstring(s1, s2):
 	m = [[0] * (1 + len(s2)) for i in xrange(1 + len(s1))]
@@ -441,6 +556,63 @@ def transRatio(s, t):
 				transmutations += 1
 
 	return float(transitions)/float(transmutations)
+
+# Longest Common Subsequence
+def lcs(s1, s2):
+	l1 = len(s1)
+	l2 = len(s2)
+	matrix = [["" for x in range(l2)] for x in range(l1)]
+	for i in range(l1):
+		for j in range(l2):
+			if s1[i] == s2[j]:
+				if i == 0 or j == 0:
+					matrix[i][j] = s1[i]
+				else:
+					matrix[i][j] = matrix[i-1][j-1] + s1[i]
+			else:
+				matrix[i][j] = max(matrix[i-1][j], matrix[i][j-1], key=len)
+	cs = matrix[-1][-1]
+	return cs
+
+# Reverse String with the lowest number of permutations
+def swap(lst, i, j):
+    sublst = lst[i:j+1]
+    sublst.reverse()
+    lst = lst[:i] + sublst + lst[j+1:]
+    return lst
+
+def reversalDistance(s, t):
+	queue = Queue.Queue()
+	visited = set()
+
+	queue.put((s,0))
+	while not queue.empty():
+		x,d = queue.get()
+		visited.add(tuple(x))
+		if x == t:
+			return d
+		for i in xrange(len(x)):
+			for j in xrange(i+1, len(x)):
+				tmp = swap(x[:], i, j)
+				if tuple(tmp) not in visited:
+					queue.put((tmp, d+1))
+
+
+def editDistance(s, t, m, n): #m = len(s), n = len(t)
+	
+	if(m == 0):
+		return n;
+
+	if(n == 0):
+		return m;
+
+	if(s[m-1] == t[n-1]):
+		return editDistance(s, t, m-1, n-1)
+
+	return 1 + min( editDistance(s,t, m-1, n),
+					editDistance(s,t, m, n-1),
+					editDistance(s,t , m-1, n-1))
+
 
 ## GRAPH FUNCTIONS ##
 # In this section are contained all the graph/traversal functions
@@ -520,7 +692,10 @@ def createSuperstrings(data, no):
 	return superstrings
 
 # Get the shortest Superstring of all possible ones
-def shortestSuperstring(strs):
+def shortestSuperstring(file):
+	reads = []
+	for i in fastaIter(file):
+		reads.append(i[1])
 	overlaps = []
 	overlapping = []
 	#find overlaps
@@ -556,6 +731,43 @@ def shortestSuperstring(strs):
 						count -= 1
 	return(new_str)
 
+def errorCorrection(reads):
+	# First remove duplicates
+	noOfShows = np.ones(len(reads))
+	hammingsMat = []
+	hammingsMatRC = []
+	for i in range(len(reads)):
+		hammings = np.zeros(len(reads))
+		hammingsRC = np.zeros(len(reads))
+		reads[i].reverseComplement()
+		for j in range(len(reads)):
+			reads[j].reverseComplement()
+			hammings[j] = bio.hammingDistance(reads[i].string, reads[j].string)
+			hammingsRC[j] = bio.hammingDistance(reads[i].string, reads[j].reverseComplementString)
+			if(i!=j):
+				if((reads[i].string == reads[j].string) | (reads[i].reverseComplementString == reads[j].string)):
+					noOfShows[i] += 1
+
+		hammingsMat.append(hammings)
+		hammingsMatRC.append(hammingsRC)
+
+	# Get indexes of wrongs
+	wrongs = []
+	for i in range(len(noOfShows)):
+		if(noOfShows[i] == 1):
+			wrongs.append(i)
+	#print noOfShows
+	for i in range(len(noOfShows)):
+		if noOfShows[i] == 1:
+			for h in range(len(hammingsMat)):
+				if(h not in wrongs):
+					if((hammingsMat[i][h] == 1)): # Check for correct reads only
+						print str(reads[i].string) + "->" + str(reads[h].string)
+						break;
+					if((hammingsMatRC[i][h] == 1)):
+						print str(reads[i].string) + "->" + str(reads[h].reverseComplementString)
+						break;
+						
 # Get number of signed Permutations of a n length string
 def checkDup(p):
 	for obj in p:
@@ -598,3 +810,47 @@ def createList(file):
 				if s2!=s1:
 					adjList[int(s1)].append(s2)
 	return (adjList, treeNodes)
+
+# Get all Strings from a Dictionary lexicographicaly
+def order_strings(dictionary, strs):
+	print dictionary
+	permutations = list(chain(strs))
+	srt_perms = sorted(permutations, key = lambda word: [dictionary.index(c) for c in word])
+	return srt_perms
+
+def order_lex(dictionary, n):
+	strs = []
+	dictionary = "".join(str(x) for x in dictionary)
+	for i in range(1,n+1):
+		for p in product(dictionary, repeat = i):
+			strs.append("".join(x for x in p))
+	return order_strings(dictionary, strs)
+
+# Count number of subsets of n length set
+def countSubsets(n):
+	count = 1
+	for i in range(1, n+1):
+		count += factorial(n)/(factorial(i)*factorial(n-i))
+	return count % 1000000
+
+# Probability of creating random string from given gc content
+def randomString(d, arr):
+	table = []
+	for p in arr:
+		total_p = 0
+		dic = {
+			'A' : (1 - p)/2,
+			'T' : (1 - p)/2,
+			'G' : p/2,
+			'C' : p/2
+		}
+		
+		d.countBases()
+		#total_p = p_g*d.g*p_t*d.t*p_c*d.c*p_a*d.a
+		for i, a in enumerate(d.string):
+			if(i == 0):
+				total_p = dic[a]
+			else:
+				total_p *= dic[a]
+		table.append(math.log10(total_p))
+	return table

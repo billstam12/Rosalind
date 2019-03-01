@@ -30,7 +30,7 @@ def profileMatrix(file):
 		G.append(g)
 		C.append(c)
 		T.append(t)
-	return np.matrix([A,G,C,T])
+	return np.matrix([A,C,G,T])
 
 def concensus(profile):
 	conc = []
@@ -39,9 +39,9 @@ def concensus(profile):
 		if(id==0):
 			conc.append("A")
 		elif(id==1):
-			conc.append("G")
-		elif(id==2):
 			conc.append("C")
+		elif(id==2):
+			conc.append("G")
 		elif(id==3):
 			conc.append("T")
 	return "".join(conc)
